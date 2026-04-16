@@ -202,11 +202,16 @@ def main() -> None:
 
     # ── Scanner les sous-dossiers ─────────────────────────────────────────
     resultats: list[dict] = []
-    sous_dossiers = sorted([
-        os.path.join(repertoire_parent, d)
-        for d in os.listdir(repertoire_parent)
-        if os.path.isdir(os.path.join(repertoire_parent, d))
-    ])
+
+    # ⚡ Bolt: Replace os.listdir with os.scandir for faster directory scanning
+    # os.scandir is significantly faster as it caches file attributes,
+    # avoiding extra system calls to check if an entry is a directory.
+    sous_dossiers = []
+    with os.scandir(repertoire_parent) as it:
+        for entry in it:
+            if entry.is_dir():
+                sous_dossiers.append(entry.path)
+    sous_dossiers.sort()
 
     if not sous_dossiers:
         log_avertissement("Aucun sous-dossier trouvé dans le répertoire parent.")
