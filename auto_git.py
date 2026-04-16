@@ -146,8 +146,20 @@ def traiter_depot(chemin: str) -> dict:
         push_result = executer_commande(["git", "push"], cwd=chemin)
         if push_result.returncode != 0:
             stderr_msg = push_result.stderr.strip()
-            # Parfois git push écrit des infos normales sur stderr
-            if "error" in stderr_msg.lower() or "fatal" in stderr_msg.lower():
+            # Si pas d'upstream configuré, on réessaie avec --set-upstream
+            if "no upstream branch" in stderr_msg or "has no upstream" in stderr_msg:
+                log_info(f"{nom_projet} — Pas d'upstream, configuration automatique...")
+                # Détecter la branche courante
+                branch_result = executer_commande(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=chemin
+                )
+                branche = branch_result.stdout.strip() or "main"
+                push_result = executer_commande(
+                    ["git", "push", "--set-upstream", "origin", branche], cwd=chemin
+                )
+                if push_result.returncode != 0:
+                    raise RuntimeError(push_result.stderr.strip())
+            elif "error" in stderr_msg.lower() or "fatal" in stderr_msg.lower():
                 raise RuntimeError(stderr_msg)
         log_succes(f"{nom_projet} — Push effectué vers GitHub ({GITHUB_USER})")
     except Exception as e:
